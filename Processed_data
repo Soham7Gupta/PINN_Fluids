@@ -1,16 +1,13 @@
 % PINN - Data Processing Script
-folder_path = '/Users/professional_Soham/Documents/kepsiloncsv_cleaned';
-output_path = '/Users/professional_Soham/Documents/kepsiloncsv_summary'; % Output folder for summaries
+folder_path = '/Users/professional_Soham/Documents/project_Matlab/kepsiloncsv_cleaned';
+output_path = '/Users/professional_Soham/Documents/project_Matlab/kepsiloncsv_summary'; % Output folder for summaries
 mkdir(output_path); % Create output folder if not existing
 
 csv_files = dir(fullfile(folder_path, '*.csv'));
 
 for i = 1:length(csv_files)
     file_path = fullfile(folder_path, csv_files(i).name);
-    data = readtable(file_path); % Read CSV as a table
-    
-    fprintf('Processing Dataset %d: %s\n', i, csv_files(i).name);
-    
+    data = readtable(file_path); % Read CSV as a table   
     % Initialize cell array for summary statistics
     summary_stats = {};
     

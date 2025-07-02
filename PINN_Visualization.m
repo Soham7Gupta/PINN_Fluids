@@ -1,7 +1,7 @@
 clear; clc; close all;
 
 % Load raw simulation data and trained model
-raw     = load('/Users/sam/Desktop/DataPinns/cylinder_nektar_wake.mat');
+raw     = load('cylinder_nektar_wake.mat');
 trained = load('trained_PINN_LBFGS.mat');  
 
 fprintf("Loaded L-BFGS trained model\n");

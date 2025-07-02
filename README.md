@@ -74,6 +74,29 @@ The goal is to show how neural networks can learn physics — not just data.
 By incorporating the Navier-Stokes equations into the training process, the model can generalize better, especially when data is noisy or sparse.
 PINNs are a powerful approach for scientific machine learning, and this project demonstrates that using fluid flow as an example.
 
+-------------------------------
+
+The following figures show model performance on a selected time snapshot of the flow field:
+
+### Velocity Magnitude (True vs Predicted)
+![Velocity Magnitudes](figures/velocity_magnitudes.png)
+
 ---
 
+### Velocity Vectors (True vs Predicted)
+![Velocity Vectors](figures/velocity_vectors.png)
+
+---
+
+### Pressure Magnitude (True vs Predicted)
+![Pressure Magnitudes](figures/pressure_magnitudes.png)
+
+---
+
+### Vorticity Difference (True - Predicted)
+![Vorticity Error](figures/vorticity.png)
+
+-----------------------------
+
+The final learned viscosity is 0.005967 for iterations in code.
 

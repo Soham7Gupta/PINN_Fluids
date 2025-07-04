@@ -96,10 +96,14 @@ The following figures show model performance on a selected time snapshot of the 
 ### Vorticity Difference (True - Predicted)
 ![Vorticity Error](figures/vorticity.png)
 
+### R Square results
+![R2_results](figures/R2.png)
 -----------------------------
 
-The final learned viscosity is 0.005967 for iterations in code.
+The final learned viscosity is 0.005967 for iterations in code
+-----------------------------
 
 Owner Soham7Gupta
+-----------------------------
 For any queries contact.
 

@@ -1,7 +1,7 @@
-clearvars; clc; % clearing all existing variables and command window
+clearvars; clc;% clearing all existing variables and command window
 
 %% Load & Preprocess Data
-raw = load('cylinder_nektar_wake.mat');
+raw = load('/Users/sam/Desktop/DataPinns/cylinder_nektar_wake.mat');
 % Assigning fluid simulation data (space, time, velocity, pressure) to variables for ease of use.
 X_star = raw.X_star;
 t_star = raw.t;
@@ -31,15 +31,39 @@ vN = (v  - mu(5)) / s(5);
 pN = (p  - mu(6)) / s(6);
 % Save mean and std of input variables (x, y, t) for denormalizing inputs later.
 inputNorm.mean = mu(1:3); inputNorm.std = s(1:3);
-% Save mean and std of output variables (u, v, p) to reverse the normalization after prediction.
 outputNorm.mean = mu(4:6); outputNorm.std = s(4:6);
 
+%% Train-Test Split (70% train, 30% test)
+totalPoints = numel(xN);
+splitIdx = round(0.7 * totalPoints);
+idxAll = randperm(totalPoints);
+
+trainIdx = idxAll(1:splitIdx);
+testIdx  = idxAll(splitIdx+1:end);
+
+% Training Data
+xN_train = xN(trainIdx);
+yN_train = yN(trainIdx);
+tN_train = tN(trainIdx);
+uN_train = uN(trainIdx);
+vN_train = vN(trainIdx);
+pN_train = pN(trainIdx);
+
+% (Optional) Test Data – use later for validation
+xN_test = xN(testIdx);
+yN_test = yN(testIdx);
+tN_test = tN(testIdx);
+uN_test = uN(testIdx);
+vN_test = vN(testIdx);
+pN_test = pN(testIdx);
+
 %% Collocation Points
-Nf = 20000; % For computing physical residual loss
+Nf = 20000;% For computing physical residual loss
 % Defining lower and upper bounds
 lb = [min(xN), min(yN), min(tN)];
 ub = [max(xN), max(yN), max(tN)];
-Xf_pool = lb + (ub-lb).*rand(Nf,3);% Generating collocation points using sampling
+% Generating collocation points using sampling
+Xf_pool = lb + (ub-lb).*rand(Nf,3);
 
 %% Build Network
 layers = [3,80,80,80,80,80,3];
@@ -61,33 +85,35 @@ lgraph = addLayers(lgraph, fullyConnectedLayer(3,'Name','out'));% Add the final 
 %Connect the last tanh activation to the output layer.
 lastTanh = sprintf('tanh%d',length(layers)-2);
 lgraph = connectLayers(lgraph,lastTanh,'out');
-net = dlnetwork(lgraph);% Creating dynamic model
+net = dlnetwork(lgraph);
 
 %% Initialize viscosity as learnable parameter
-viscosity = dlarray(0.01, 'CB'); % Initial Guess
+viscosity = dlarray(0.01, 'CB');
+
 %% TRAINING
 % Adam Phase
-maxEpochs = 15; % Epochs
-miniBatchSize = 64; % Batch size
-learnRate = 1e-3; % Learning Rate
+maxEpochs = 15;
+miniBatchSize = 64;
+learnRate = 1e-3;
 trAvg = []; trAvgSq = []; iteration = 0;
-% Shuffling the training data for better generalization with each epoch
+
 for epoch = 1:maxEpochs
-    idx = randperm(numel(xN));
-    xN = xN(idx); yN = yN(idx); tN = tN(idx);
-    uN = uN(idx); vN = vN(idx); pN = pN(idx);
+    idx = randperm(numel(xN_train));
+    xN_train = xN_train(idx); yN_train = yN_train(idx); tN_train = tN_train(idx);
+    uN_train = uN_train(idx); vN_train = vN_train(idx); pN_train = pN_train(idx);
     % randomly selecting 1000 colloaction points from large pool
     sub = randperm(Nf,1000);
     Xf = Xf_pool(sub,:);
-    % Start the mini-batch training
-    for i = 1:miniBatchSize:numel(xN)
+
+    for i = 1:miniBatchSize:numel(xN_train)
         iteration = iteration + 1;
-        ib = i:min(i+miniBatchSize-1,numel(xN));
+        ib = i:min(i+miniBatchSize-1,numel(xN_train));
         % Converting mini-batch input and output to dlarray for auto diff
-        dlX = dlarray([xN(ib)'; yN(ib)'; tN(ib)'], 'CB');
-        dlU = dlarray(uN(ib)', 'CB');
-        dlV = dlarray(vN(ib)', 'CB');
-        dlP = dlarray(pN(ib)', 'CB');
+        dlX = dlarray([xN_train(ib)'; yN_train(ib)'; tN_train(ib)'], 'CB');
+        dlU = dlarray(uN_train(ib)', 'CB');
+        dlV = dlarray(vN_train(ib)', 'CB');
+        dlP = dlarray(pN_train(ib)', 'CB');
+
         cf = randperm(1000, numel(ib));
         dlXf = dlarray(Xf(cf,:)', 'CB');
         % Moving data to gpu for faster training
@@ -99,17 +125,16 @@ for epoch = 1:maxEpochs
         [lossData, lossPhys, ~, grads, uPred, vPred, pPred] = ...
             dlfeval(@modelGradients, net, viscosity, dlX, dlU, dlV, dlP, dlXf, inputNorm, outputNorm);
 
-        [net, trAvg, trAvgSq] = adamupdate(net, grads.net, trAvg, trAvgSq, iteration, learnRate);% updating weights using the adam optimizer
+        [net, trAvg, trAvgSq] = adamupdate(net, grads.net, trAvg, trAvgSq, iteration, learnRate);
         viscosity = viscosity - learnRate * grads.viscosity;
 
         if mod(iteration,100)==0
             nu_val = extractdata(viscosity);
             fprintf("Epoch %d, Iter %d - LossD=%.3e, LossP=%.3e, nu=%.4f\n", ...
-                epoch, iteration, lossData, lossPhys, nu_val);% printing data on command window which each passing iteration
+                epoch, iteration, lossData, lossPhys, nu_val);
         end
     end
 end
-
 %L-BFGS Phase
 fprintf("Adam training complete. Starting L-BFGS refinement. \n");
 % Storing current trained network for lbfgs updates.
@@ -132,6 +157,34 @@ theta_opt = fminunc(@(theta)objectiveLBFGS(theta, ...
 [net, viscosity] = unpackTheta(theta_opt, params0);
 
 save('trained_PINN_LBFGS.mat', 'net', 'viscosity', 'inputNorm', 'outputNorm');% Saving the results
+% Prepare test inputs
+xTest = xN_test;
+yTest = yN_test;
+tTest = tN_test;
+
+% Get predictions
+dlTestInput = dlarray([xTest, yTest, tTest]', 'CB');
+dlOutput = forward(net, dlTestInput);
+uPred = extractdata(dlOutput(1, :))' * outputNorm.std(1) + outputNorm.mean(1);
+vPred = extractdata(dlOutput(2, :))' * outputNorm.std(2) + outputNorm.mean(2);
+pPred = extractdata(dlOutput(3, :))' * outputNorm.std(3) + outputNorm.mean(3);
+
+
+% Compare with ground truth %1
+uTrue = u(testIdx);
+vTrue = v(testIdx);
+pTrue = p(testIdx);
+
+
+% R² scores
+R2u = 1 - sum((uTrue - uPred).^2) / sum((uTrue - mean(uTrue)).^2);
+R2v = 1 - sum((vTrue - vPred).^2) / sum((vTrue - mean(vTrue)).^2);
+R2p = 1 - sum((pTrue - pPred).^2) / sum((pTrue - mean(pTrue)).^2);
+
+fprintf("R² (u): %.4f | R² (v): %.4f | R² (p): %.4f\n", R2u, R2v, R2p);
+fprintf("Final learned viscosity (nu): %.5f\n", nu_val);
+
+
 function [lossData, lossPhys, resNorms, grads, uN, vN, pN] = ...
     modelGradients(net, viscosity, dlX, dlU, dlV, dlP, dlXf, inN, outN)
     % Forward pass
@@ -285,5 +338,3 @@ function [loss, grad] = objectiveLBFGS(theta, params0, inN, outN, x, y, t, u, v,
         callNum, loss, double(lossData), double(lossPhys), extractdata(viscosity), ...
         resNorms(1), resNorms(2), resNorms(3));
 end
-
-

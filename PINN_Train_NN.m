@@ -1,7 +1,7 @@
 clearvars; clc;% clearing all existing variables and command window
 
 %% Load & Preprocess Data
-raw = load('/Users/sam/Desktop/DataPinns/cylinder_nektar_wake.mat');
+raw = load('cylinder_nektar_wake.mat');
 % Assigning fluid simulation data (space, time, velocity, pressure) to variables for ease of use.
 X_star = raw.X_star;
 t_star = raw.t;

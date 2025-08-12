@@ -78,13 +78,9 @@ PINNs are a powerful approach for scientific machine learning, and this project 
 
 The following figures show model performance on a selected time snapshot of the flow field:
 
-### Velocity Magnitude (True vs Predicted)
+### Velocity Magnitude and Vectors (True vs Predicted)
 ![Velocity Magnitudes](figures/velocity_magnitudes.png)
 
----
-
-### Velocity Vectors (True vs Predicted)
-![Velocity Vectors](figures/velocity_vectors.png)
 
 ---
 
@@ -100,7 +96,7 @@ The following figures show model performance on a selected time snapshot of the 
 ![R2_results](figures/R2.png)
 -----------------------------
 
-The final learned viscosity is 0.00616 for iterations in code
+The final learned viscosity is 0.00916 for iterations in code
 -----------------------------
 
 Owner Soham7Gupta

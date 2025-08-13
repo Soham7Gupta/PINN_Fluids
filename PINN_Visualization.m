@@ -1,7 +1,7 @@
 clear; clc; close all;
 
 rawPath     = 'cylinder_nektar_wake.mat';
-trainedPath = 'trained_PINN_LBFGS.mat';
+trainedPath = 'trained_PINN_Navier_Stokes.mat';
 
 fprintf('Loading data and trained model...\n');
 raw = load(rawPath);

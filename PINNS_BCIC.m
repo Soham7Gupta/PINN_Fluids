@@ -2,7 +2,7 @@
 clearvars; clc;
 
 % load simulation data
-raw = load('/Users/sam/Desktop/DataPinns/cylinder_nektar_wake.mat');
+raw = load('cylinder_nektar_wake.mat');
 X_star = raw.X_star;
 t_star = raw.t;
 U_star = raw.U_star;
